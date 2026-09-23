@@ -1,0 +1,41 @@
+{% extends "suivi/base.html" %}
+{% load static %}
+{% block titre %}Connexion{% endblock %}
+{% block contenu %}
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--c-noir); position:fixed; inset:0; margin-left:0;">
+    <div style="width:400px; max-width:95vw;">
+
+        {# Motif rayures en haut #}
+        <div style="height:6px; background: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(218,83,44,.5) 4px, rgba(218,83,44,.5) 8px); border-radius:4px 4px 0 0;"></div>
+
+        <div style="background:#fff; padding:36px; border-radius:0 0 8px 8px;">
+            <div style="text-align:center; margin-bottom:28px;">
+                <img src="{% static 'suivi/images/logo.png' %}" alt="Saint-Étienne Tourisme" style="max-width:160px;">
+            </div>
+            <p style="font-size:.7rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--c-gris-moyen); margin-bottom:20px;">Indicateurs de fréquentation</p>
+
+            {% if form.errors %}
+            <div class="alert-app danger" style="margin-bottom:16px;">Identifiant ou mot de passe incorrect.</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label>Identifiant</label>
+                    <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="field-group">
+                    <label>Mot de passe</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-app" style="width:100%; justify-content:center; margin-top:8px;">
+                    Se connecter
+                </button>
+            </form>
+            <div style="text-align:center; margin-top:16px;">
+                <a href="{% url 'reinit_mdp' %}" style="font-size:.78rem; color:var(--c-gris-moyen); text-decoration:none;">Mot de passe oublié ?</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

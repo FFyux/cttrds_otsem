@@ -1,0 +1,299 @@
+{% extends "suivi/base.html" %}
+{% load suivi_extras %}
+{% block titre %}Saisie mensuelle{% endblock %}
+{% block page_title %}{% if instance %}Modifier la saisie{% else %}Nouvelle saisie mensuelle{% endif %}{% endblock %}
+
+{% block contenu %}
+<div class="row justify-content-center">
+<div class="col-lg-7">
+
+<div x-data="indicateurForm()" class="modal-card animate__animated animate__fadeInDown animate__faster"
+     style="position:static; width:100%; max-height:none; box-shadow:0 4px 24px rgba(0,0,0,.12); border:1px solid var(--c-gris-clair);">
+
+    {# ── En-tête ── #}
+    <div class="modal-header" style="position:relative; overflow:hidden;">
+        <h4>{% if instance %}{{ instance.site.nom }} — {{ instance.get_mois_display }} {{ instance.annee }}{% else %}Nouvelle saisie{% endif %}</h4>
+        {# Rayure déco #}
+        <div style="position:absolute; right:0; top:0; bottom:0; width:60px;
+            background: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,255,0,.15) 4px, rgba(0,255,0,.15) 8px);"></div>
+    </div>
+
+    {# ── Corps du formulaire ── #}
+    <div class="modal-body">
+
+        {# Erreurs non-champ #}
+        {% if form.non_field_errors %}
+        <div class="alert-app danger animate__animated animate__shakeX">
+            {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" id="form-indicateur" @submit="handleSubmit">
+            {% csrf_token %}
+
+            {# ── Site ── #}
+            <div class="field-group">
+                <label>Site {% if not user.est_admin %}<span style="color:var(--c-gris-moyen); font-weight:400;">(votre site)</span>{% endif %}</label>
+                <div style="font-size:1.15rem; font-weight:700; color:var(--c-noir); padding:10px 12px; background:var(--c-input-bg); border-radius:var(--r-sm); border:1.5px solid var(--c-gris-clair);">
+                    {{ form.site }}
+                </div>
+            </div>
+
+            {# ── Période ── #}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="field-group" style="margin:0;">
+                    <label>Année *</label>
+                    {{ form.annee }}
+                </div>
+                <div class="field-group" style="margin:0;">
+                    <label>Mois *</label>
+                    {{ form.mois }}
+                </div>
+            </div>
+
+            {# ── Fréquentation totale ── #}
+            <div class="field-group" :class="totalClass">
+                <label>
+                    Fréquentation totale *
+                    <span class="remaining-badge ms-2"
+                          :class="totalBadgeClass"
+                          x-text="totalLabel"
+                          x-show="total > 0"></span>
+                </label>
+                <input type="number" name="frequentation_totale" id="id_frequentation_totale"
+                       class="form-control" min="0"
+                       x-model.number="total"
+                       value="{{ form.frequentation_totale.value|default:'' }}"
+                       @input="update">
+                {# Barre de répartition globale #}
+                <div class="gauge-bar" x-show="total > 0">
+                    <div class="gauge-fill"
+                         :style="`width:${Math.min(100, (sommeProvenance/total)*100)}%; background:${gaugeColor(sommeProvenance, total)}`"></div>
+                </div>
+            </div>
+
+            {# ── Bloc provenance ── #}
+            <div style="background:var(--c-input-bg); border-radius:var(--r-sm); padding:16px; margin-bottom:14px;"
+                 :class="{'border': true, 'border-danger': overProvenance, 'border-success': okProvenance && sommeProvenance > 0}">
+
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                    <p style="font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-gris-moyen); margin:0;">
+                        Par provenance
+                    </p>
+                    <div x-show="total > 0" style="display:flex; align-items:center; gap:6px;">
+                        <span class="remaining-badge" :class="overProvenance ? 'over' : (okProvenance && sommeProvenance > 0 ? 'ok' : 'neutral')">
+                            <span x-text="sommeProvenance"></span> / <span x-text="total"></span>
+                        </span>
+                        <span x-show="resteProvenance >= 0 && sommeProvenance > 0"
+                              class="remaining-badge neutral"
+                              x-text="`${resteProvenance} restants`"></span>
+                        <span x-show="overProvenance"
+                              style="color:#dc2626; font-size:.75rem; font-weight:700;">⚠ Dépassement</span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+                    {% for fname, label, model in form_provenance %}
+                    <div class="field-group" style="margin:0;">
+                        <label>{{ label }}</label>
+                        <input type="number" name="{{ fname }}" id="id_{{ fname }}"
+                               class="form-control" min="0"
+                               x-model.number="{{ model }}"
+                               value="{{ form|get_field:fname }}"
+                               @input="update">
+                        <div class="gauge-bar" x-show="total > 0">
+                            <div class="gauge-fill"
+                                 :style="`width:${total > 0 ? Math.min(100,({{ model }}/total)*100) : 0}%; background:#323C73`"></div>
+                        </div>
+                        <div style="font-size:.68rem; color:var(--c-gris-moyen); margin-top:2px;"
+                             x-show="total > 0 && {{ model }} > 0"
+                             x-text="`${total > 0 ? Math.round(({{ model }}/total)*100) : 0}%`"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# ── Bloc tarif ── #}
+            <div style="background:var(--c-input-bg); border-radius:var(--r-sm); padding:16px; margin-bottom:14px;"
+                 :class="{'border': true, 'border-danger': overTarif, 'border-success': okTarif && sommeTarif > 0}">
+
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                    <p style="font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-gris-moyen); margin:0;">
+                        Par tarif
+                    </p>
+                    <div x-show="total > 0" style="display:flex; align-items:center; gap:6px;">
+                        <span class="remaining-badge" :class="overTarif ? 'over' : (okTarif && sommeTarif > 0 ? 'ok' : 'neutral')">
+                            <span x-text="sommeTarif"></span> / <span x-text="total"></span>
+                        </span>
+                        <span x-show="overTarif" style="color:#dc2626; font-size:.75rem; font-weight:700;">⚠ Dépassement</span>
+                    </div>
+                </div>
+
+                {# Barre visuelle gratuit vs payant #}
+                <div x-show="sommeTarif > 0" style="margin-bottom:12px;">
+                    <div style="display:flex; gap:2px; height:8px; border-radius:4px; overflow:hidden; background:var(--c-gris-clair);">
+                        <div :style="`width:${sommeTarif > 0 ? (gratuite/sommeTarif)*100 : 0}%; background:#22c55e; transition:width .4s ease;`"></div>
+                        <div :style="`width:${sommeTarif > 0 ? (payante/sommeTarif)*100 : 0}%; background:#323C73; transition:width .4s ease;`"></div>
+                    </div>
+                    <div style="display:flex; gap:16px; margin-top:4px;">
+                        <span style="font-size:.68rem; color:#15803d;">● Gratuit : <span x-text="sommeTarif > 0 ? Math.round((gratuite/sommeTarif)*100) : 0"></span>%</span>
+                        <span style="font-size:.68rem; color:#323C73;">● Payant : <span x-text="sommeTarif > 0 ? Math.round((payante/sommeTarif)*100) : 0"></span>%</span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="field-group" style="margin:0;">
+                        <label>Gratuite</label>
+                        <input type="number" name="frequentation_gratuite" id="id_frequentation_gratuite"
+                               class="form-control" min="0"
+                               x-model.number="gratuite"
+                               value="{{ form.frequentation_gratuite.value|default:'' }}"
+                               @input="update">
+                    </div>
+                    <div class="field-group" style="margin:0;">
+                        <label>Payante</label>
+                        <input type="number" name="frequentation_payante" id="id_frequentation_payante"
+                               class="form-control" min="0"
+                               x-model.number="payante"
+                               value="{{ form.frequentation_payante.value|default:'' }}"
+                               @input="update">
+                    </div>
+                </div>
+            </div>
+
+            {# ── Jours + commentaire ── #}
+            <div style="display:grid; grid-template-columns:1fr 2fr; gap:14px; margin-bottom:14px;">
+                <div class="field-group" style="margin:0;" :class="joursClass">
+                    <label>Jours d'ouverture *</label>
+                    <input type="number" name="nb_jours_ouverture" id="id_nb_jours_ouverture"
+                           class="form-control" min="0" max="31"
+                           x-model.number="jours"
+                           value="{{ form.nb_jours_ouverture.value|default:'' }}"
+                           @input="update">
+                    <div style="font-size:.68rem; color:var(--c-gris-moyen); margin-top:3px;"
+                         x-show="jours > 0"
+                         x-text="`Fermé ${31 - jours} jour${31-jours > 1 ? 's' : ''} ce mois`"></div>
+                </div>
+                <div class="field-group" style="margin:0;">
+                    <label>Commentaire <span style="font-weight:400; color:var(--c-gris-moyen);">(facultatif)</span></label>
+                    {{ form.commentaire }}
+                </div>
+            </div>
+
+            {# ── Récap validation ── #}
+            <div x-show="showRecap" x-transition style="border-radius:var(--r-sm); padding:12px 16px; margin-bottom:4px;"
+                 :style="isValid ? 'background:#f0fdf4; border:1px solid #86efac;' : 'background:#fff5f5; border:1px solid #fca5a5;'">
+                <p style="font-size:.78rem; font-weight:700; margin-bottom:6px;"
+                   :style="isValid ? 'color:#15803d' : 'color:#dc2626'"
+                   x-text="isValid ? '✓ Saisie valide, prête à enregistrer' : '⚠ Corrigez les erreurs avant d\'enregistrer'"></p>
+                <template x-for="err in validationErrors" :key="err">
+                    <p style="font-size:.75rem; color:#dc2626; margin:2px 0;" x-text="'— ' + err"></p>
+                </template>
+            </div>
+
+        </form>
+    </div>
+
+    {# ── Actions ── #}
+    <div class="modal-actions">
+        <a href="{% url 'tableau_de_bord' %}" class="btn-cancel">Annuler</a>
+        <button type="submit" form="form-indicateur" class="btn-app"
+                :disabled="showRecap && !isValid"
+                :style="showRecap && !isValid ? 'opacity:.5; cursor:not-allowed;' : ''">
+            <span class="spinner"></span>
+            <span class="btn-label">Enregistrer</span>
+        </button>
+    </div>
+</div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function indicateurForm() {
+    return {
+        // Valeurs liées aux champs
+        total:    {{ form.frequentation_totale.value|default:0 }},
+        locale:   {{ form.frequentation_locale.value|default:0 }},
+        france:   {{ form.frequentation_france.value|default:0 }},
+        etranger: {{ form.frequentation_etranger.value|default:0 }},
+        gratuite: {{ form.frequentation_gratuite.value|default:0 }},
+        payante:  {{ form.frequentation_payante.value|default:0 }},
+        jours:    {{ form.nb_jours_ouverture.value|default:0 }},
+        showRecap: false,
+
+        // ── Calculs dérivés ──────────────────────────────────────
+        get sommeProvenance() { return (this.locale||0) + (this.france||0) + (this.etranger||0); },
+        get sommeTarif()      { return (this.gratuite||0) + (this.payante||0); },
+        get resteProvenance() { return (this.total||0) - this.sommeProvenance; },
+        get resteTarif()      { return (this.total||0) - this.sommeTarif; },
+        get overProvenance()  { return this.sommeProvenance > this.total && this.total > 0; },
+        get overTarif()       { return this.sommeTarif > this.total && this.total > 0; },
+        get okProvenance()    { return !this.overProvenance; },
+        get okTarif()         { return !this.overTarif; },
+
+        // ── Validation globale ───────────────────────────────────
+        get validationErrors() {
+            const errs = [];
+            if (!this.total || this.total <= 0)
+                errs.push("La fréquentation totale doit être supérieure à 0.");
+            if (this.overProvenance)
+                errs.push(`Provenances (${this.sommeProvenance}) dépassent le total (${this.total}).`);
+            if (this.overTarif)
+                errs.push(`Tarifs (${this.sommeTarif}) dépassent le total (${this.total}).`);
+            if (this.jours < 0 || this.jours > 31)
+                errs.push("Jours d'ouverture : entre 0 et 31.");
+            return errs;
+        },
+        get isValid() { return this.validationErrors.length === 0; },
+
+        // ── Classes CSS dynamiques ───────────────────────────────
+        get totalClass() {
+            if (!this.total) return '';
+            return this.total > 0 ? 'field-ok' : 'field-error';
+        },
+        get totalBadgeClass() {
+            if (!this.total || this.total === 0) return 'neutral';
+            if (this.overProvenance || this.overTarif) return 'over';
+            return 'ok';
+        },
+        get totalLabel() {
+            if (!this.total) return '';
+            return `${this.total.toLocaleString('fr-FR')} visiteurs`;
+        },
+        get joursClass() {
+            if (!this.jours) return '';
+            if (this.jours > 31) return 'field-error';
+            return 'field-ok';
+        },
+
+        // ── Couleur de la jauge ──────────────────────────────────
+        gaugeColor(val, max) {
+            if (!max) return '#e5e7eb';
+            const pct = val / max;
+            if (pct > 1)    return '#ef4444';
+            if (pct > 0.9)  return '#f59e0b';
+            return '#22c55e';
+        },
+
+        // ── Mise à jour après chaque saisie ─────────────────────
+        update() {
+            this.showRecap = (this.total > 0);
+        },
+
+        // ── Soumission ───────────────────────────────────────────
+        handleSubmit(e) {
+            this.showRecap = true;
+            if (!this.isValid) {
+                e.preventDefault();
+                window.toast('Corrigez les erreurs avant d\'enregistrer.', 'error');
+                // Scroll vers le récap
+                this.$el.querySelector('[x-show="showRecap"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        },
+    }
+}
+</script>
+{% endblock %}

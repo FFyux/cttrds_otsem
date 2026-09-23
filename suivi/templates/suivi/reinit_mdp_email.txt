@@ -1,0 +1,11 @@
+Bonjour {{ user.first_name|default:user.username }},
+
+Vous avez demandé la réinitialisation de votre mot de passe sur la plateforme de saisie des indicateurs de fréquentation.
+
+Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :
+
+{{ protocol }}://{{ domain }}{% url 'reinit_mdp_confirm' uidb64=uid token=token %}
+
+Ce lien est valable une fois et expire après un délai limité.
+
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.

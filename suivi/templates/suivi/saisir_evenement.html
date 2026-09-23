@@ -1,0 +1,194 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Saisie événement{% endblock %}
+{% block page_title %}{% if instance %}Modifier l'événement{% else %}Nouvel événement{% endif %}{% endblock %}
+
+{% block contenu %}
+<div class="row justify-content-center">
+<div class="col-md-7">
+
+<div x-data="evenementForm()" class="modal-card animate__animated animate__fadeInDown animate__faster"
+     style="position:static; width:100%; max-height:none; box-shadow:0 4px 24px rgba(0,0,0,.12); border:1px solid var(--c-gris-clair);">
+
+    <div class="modal-header" style="position:relative; overflow:hidden;">
+        <h4>{% if instance %}{{ instance.nom }}{% else %}Nouvel événement{% endif %}</h4>
+        <div style="position:absolute; right:0; top:0; bottom:0; width:60px;
+            background: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,255,0,.15) 4px, rgba(0,255,0,.15) 8px);"></div>
+    </div>
+
+    <div class="modal-body">
+        {% if form.non_field_errors %}
+        <div class="alert-app danger animate__animated animate__shakeX">
+            {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" id="form-evenement">
+            {% csrf_token %}
+
+            <div class="field-group">
+                <label>Site</label>
+                {{ form.site }}
+            </div>
+
+            <div class="field-group" :class="nomClass">
+                <label>Nom de l'événement *</label>
+                <input type="text" name="nom" id="id_nom" class="form-control"
+                       x-model="nom" value="{{ form.nom.value|default:'' }}"
+                       placeholder="Ex : Nuit des musées 2026"
+                       @input="update">
+                {# Compteur de caractères #}
+                <div style="display:flex; justify-content:flex-end; margin-top:3px;">
+                    <span style="font-size:.68rem;"
+                          :style="nom.length > 180 ? 'color:#dc2626' : 'color:var(--c-gris-moyen)'"
+                          x-text="`${nom.length}/200`"></span>
+                </div>
+            </div>
+
+            {# ── Dates avec Flatpickr et calcul durée ── #}
+            <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:12px; align-items:end; margin-bottom:14px;">
+                <div class="field-group" style="margin:0;" :class="dateDebutClass">
+                    <label>Date de début *</label>
+                    <input type="text" name="date_debut" id="id_date_debut" class="form-control flatpickr-input"
+                           x-model="dateDebut"
+                           value="{{ form.date_debut.value|default:'' }}"
+                           placeholder="jj/mm/aaaa"
+                           @change="update" autocomplete="off">
+                </div>
+                <div class="field-group" style="margin:0;" :class="dateFinClass">
+                    <label>Date de fin *</label>
+                    <input type="text" name="date_fin" id="id_date_fin" class="form-control flatpickr-input"
+                           x-model="dateFin"
+                           value="{{ form.date_fin.value|default:'' }}"
+                           placeholder="jj/mm/aaaa"
+                           @change="update" autocomplete="off">
+                </div>
+                {# Badge durée #}
+                <div x-show="duree !== null" x-transition style="padding-bottom:14px;">
+                    <div class="remaining-badge" :class="duree >= 0 ? 'ok' : 'over'"
+                         x-text="duree >= 0 ? `${duree + 1} jour${duree > 0 ? 's' : ''}` : 'Dates invalides'"></div>
+                </div>
+            </div>
+
+            {# Alerte dates incohérentes #}
+            <div x-show="duree !== null && duree < 0" x-transition
+                 class="alert-app danger animate__animated animate__shakeX" style="margin-bottom:14px;">
+                La date de fin est antérieure à la date de début.
+            </div>
+
+            {# ── Fréquentation avec estimation/jour ── #}
+            <div class="field-group" :class="freqClass">
+                <label>
+                    Fréquentation totale de l'événement *
+                    <span x-show="duree >= 0 && freq > 0 && duree !== null"
+                          class="remaining-badge neutral ms-2"
+                          x-text="`≈ ${Math.round(freq / (duree + 1))} visiteurs/jour`"></span>
+                </label>
+                <input type="number" name="frequentation" id="id_frequentation"
+                       class="form-control" min="0"
+                       x-model.number="freq"
+                       value="{{ form.frequentation.value|default:'' }}"
+                       @input="update">
+                {# Mini barre de contexte #}
+                <div x-show="freq > 0" style="margin-top:6px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; height:4px; background:var(--c-gris-clair); border-radius:2px; overflow:hidden;">
+                            <div :style="`width:${Math.min(100,(freq/5000)*100)}%; background:#323C73; height:100%; transition:width .4s;`"></div>
+                        </div>
+                        <span style="font-size:.68rem; color:var(--c-gris-moyen);" x-text="freq.toLocaleString('fr-FR') + ' visiteurs'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label>Commentaire <span style="font-weight:400; color:var(--c-gris-moyen);">(facultatif)</span></label>
+                {{ form.commentaire }}
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-actions">
+        <a href="{% url 'liste_evenements' %}" class="btn-cancel">Annuler</a>
+        <button type="submit" form="form-evenement" class="btn-app"
+                :disabled="!isValid"
+                :style="!isValid ? 'opacity:.5; cursor:not-allowed;' : ''">
+            <span class="spinner"></span>
+            <span class="btn-label">Enregistrer</span>
+        </button>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function evenementForm() {
+    return {
+        nom:       "{{ form.nom.value|default:''|escapejs }}",
+        dateDebut: "{{ form.date_debut.value|default:''|escapejs }}",
+        dateFin:   "{{ form.date_fin.value|default:''|escapejs }}",
+        freq:      {{ form.frequentation.value|default:0 }},
+        fpDebut:   null,
+        fpFin:     null,
+
+        init() {
+            // Flatpickr sur les deux champs dates, en mode FR
+            const opts = {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "d/m/Y",
+                locale: "fr",
+                allowInput: true,
+                onChange: () => this.update(),
+            };
+            this.fpDebut = flatpickr("#id_date_debut", {
+                ...opts,
+                onReady: (_, __, fp) => { if (this.dateDebut) fp.setDate(this.dateDebut); },
+                onChange: (dates) => {
+                    this.dateDebut = dates[0] ? dates[0].toISOString().slice(0,10) : '';
+                    // Empêcher date fin < date début
+                    if (this.fpFin && dates[0]) this.fpFin.set('minDate', dates[0]);
+                    this.update();
+                },
+            });
+            this.fpFin = flatpickr("#id_date_fin", {
+                ...opts,
+                onReady: (_, __, fp) => { if (this.dateFin) fp.setDate(this.dateFin); },
+                onChange: (dates) => {
+                    this.dateFin = dates[0] ? dates[0].toISOString().slice(0,10) : '';
+                    this.update();
+                },
+            });
+        },
+
+        get duree() {
+            if (!this.dateDebut || !this.dateFin) return null;
+            const d1 = new Date(this.dateDebut), d2 = new Date(this.dateFin);
+            if (isNaN(d1) || isNaN(d2)) return null;
+            return Math.round((d2 - d1) / 86400000);
+        },
+
+        get isValid() {
+            return this.nom.length > 0
+                && this.dateDebut
+                && this.dateFin
+                && (this.duree === null || this.duree >= 0)
+                && this.freq >= 0;
+        },
+
+        get nomClass()  { return this.nom.length > 0 ? 'field-ok' : ''; },
+        get freqClass() { return this.freq > 0 ? 'field-ok' : ''; },
+        get dateDebutClass() {
+            if (!this.dateDebut) return '';
+            return this.duree !== null && this.duree >= 0 ? 'field-ok' : 'field-error';
+        },
+        get dateFinClass() {
+            if (!this.dateFin) return '';
+            return this.duree !== null && this.duree >= 0 ? 'field-ok' : 'field-error';
+        },
+
+        update() { /* déclenche la réactivité Alpine */ },
+    }
+}
+</script>
+{% endblock %}

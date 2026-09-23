@@ -1,0 +1,219 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block topbar_actions %}
+    <a href="{% url 'saisir_indicateur' %}" class="btn-app accent">+ Nouvelle saisie</a>
+{% endblock %}
+
+{% block contenu %}
+
+{% if not user.est_admin and not user.site %}
+<div class="alert-app">Aucun site n'est rattaché à votre compte. Contactez un administrateur.</div>
+{% endif %}
+
+{% if sites %}
+<div class="app-card" style="padding:16px 20px; margin-bottom:16px;">
+
+    {# ── Sélecteur de site ── #}
+    {% if sites|length > 1 %}
+    <div class="filter-row mb-3">
+        <span class="filter-label">Site&nbsp;:</span>
+        {% for s in sites %}
+        <a href="?site_graphique={{ s.pk }}&annees={{ annees_param }}"
+           class="btn-select {% if site_graphique.pk == s.pk %}active{% endif %}">
+            {{ s.nom }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Sélecteur d'années (multi-sélection côté client) ── #}
+    <div class="filter-row" id="annees-filter">
+        <span class="filter-label">Années&nbsp;:</span>
+        {% for a, label in annees_dispo %}
+        <button type="button"
+                class="annee-btn {% if a in annees_selectionnees %}active{% endif %}"
+                data-annee="{{ a }}"
+                style="
+                    display: inline-flex; align-items: center; gap: 6px;
+                    padding: 6px 14px;
+                    border: 1.5px solid {% if a in annees_selectionnees %}#111{% else %}var(--c-gris-clair){% endif %};
+                    border-radius: var(--r-pill); font-size: .78rem; font-weight: 600;
+                    background: {% if a in annees_selectionnees %}#111{% else %}var(--c-blanc){% endif %};
+                    color: {% if a in annees_selectionnees %}#fff{% else %}var(--c-gris-fonce){% endif %};
+                    cursor: pointer; transition: all .12s;
+                ">
+            {# Point couleur fixe de l'année #}
+            <span style="
+                display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+                background: {{ legende_couleurs_json|slice:'0' }};
+                flex-shrink: 0;
+                box-shadow: 0 0 0 1.5px rgba(0,0,0,.12);
+            " data-color-year="{{ a }}"></span>
+            {{ label }}
+        </button>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# ── Graphique ── #}
+{% if site_graphique %}
+<div class="app-card mb-4" style="padding:20px 24px;">
+    <div class="app-card-title">
+        <span>Fréquentation — {{ site_graphique.nom }}</span>
+        <span style="font-size:.7rem; color:var(--c-gris-moyen);">
+            {% for a in annees_selectionnees %}{{ a }}{% if not forloop.last %} / {% endif %}{% endfor %}
+        </span>
+    </div>
+    <canvas id="graphique" height="80"></canvas>
+</div>
+{% endif %}
+
+{# ── Dernières saisies ── #}
+<div class="app-card">
+    <div class="app-card-title">
+        <span>Dernières saisies</span>
+        <a href="{% url 'liste_indicateurs' %}" class="btn-app outline sm">Tout voir</a>
+    </div>
+
+    {% if indicateurs %}
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    {% if user.est_admin %}<th>Site</th>{% endif %}
+                    <th>Période</th><th>Total</th>
+                    <th>Local</th><th>France</th><th>Étranger</th>
+                    <th>Gratuit</th><th>Payant</th><th>Jours</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ind in indicateurs %}
+                <tr>
+                    {% if user.est_admin %}<td style="font-weight:600;">{{ ind.site.nom }}</td>{% endif %}
+                    <td style="white-space:nowrap;">{{ ind.get_mois_display }} {{ ind.annee }}</td>
+                    <td style="font-weight:700;">{{ ind.frequentation_totale }}</td>
+                    <td>{{ ind.frequentation_locale }}</td>
+                    <td>{{ ind.frequentation_france }}</td>
+                    <td>{{ ind.frequentation_etranger }}</td>
+                    <td>{{ ind.frequentation_gratuite }}</td>
+                    <td>{{ ind.frequentation_payante }}</td>
+                    <td>{{ ind.nb_jours_ouverture }}</td>
+                    <td><a href="{% url 'modifier_indicateur' ind.pk %}" class="btn-app outline sm">Modifier</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:var(--c-gris-moyen); font-size:.85rem;">Aucune saisie pour le moment.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+// ── Palette fixe année → couleur ─────────────────────────────
+const legendeCouleurs = {{ legende_couleurs_json|safe }};
+document.querySelectorAll('[data-color-year]').forEach(dot => {
+    const annee = parseInt(dot.dataset.colorYear);
+    if (legendeCouleurs[annee]) dot.style.background = legendeCouleurs[annee];
+});
+
+const labels   = {{ labels_mois_json|safe }};
+const datasets = {{ datasets_json|safe }};
+const siteId   = "{% if site_graphique %}{{ site_graphique.pk }}{% endif %}";
+
+// Index { annee: [val_jan, val_fev, ...] } pour calculs d'évolution
+const dataByYear = {};
+datasets.forEach(d => { dataByYear[parseInt(d.label)] = d.data; });
+
+{% if site_graphique %}
+new Chart(document.getElementById('graphique'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: datasets.map(d => ({
+            label: d.label,
+            data: d.data,
+            backgroundColor: d.color,
+            borderRadius: 3,
+        }))
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { family: 'Inter', size: 11, weight: '600' }, padding: 16 }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        const annee = parseInt(ctx.dataset.label);
+                        const moisIdx = ctx.dataIndex;
+                        const valeur = ctx.parsed.y;
+                        const valeurN1 = dataByYear[annee - 1]?.[moisIdx];
+
+                        let ligne = ` ${ctx.dataset.label} : ${valeur.toLocaleString('fr-FR')} visiteurs`;
+
+                        if (valeur > 0 && valeurN1 !== undefined) {
+                            if (valeurN1 === 0) {
+                                ligne += ' (N-1 : 0 — évol. non calculable)';
+                            } else {
+                                const evol = ((valeur - valeurN1) / valeurN1) * 100;
+                                const signe = evol >= 0 ? '+' : '';
+                                const fleche = evol > 0 ? '▲' : evol < 0 ? '▼' : '=';
+                                ligne += ` ${fleche} ${signe}${evol.toFixed(1)} % vs N-1`;
+                            }
+                        } else if (valeurN1 === undefined) {
+                            ligne += ' (vs N-1 : —)';
+                        }
+                        return ligne;
+                    },
+                    afterBody: function(ctx) {
+                        if (datasets.length <= 1) return [];
+                        const moisIdx = ctx[0].dataIndex;
+                        const total = datasets.reduce((s, d) => s + (d.data[moisIdx] || 0), 0);
+                        if (total === 0) return [];
+                        return [`  Total tous millésimes : ${total.toLocaleString('fr-FR')}`];
+                    }
+                },
+                padding: 12,
+                backgroundColor: 'rgba(17,17,17,0.92)',
+                titleFont: { family: 'Inter', size: 12, weight: '700' },
+                bodyFont: { family: 'Inter', size: 11 },
+                cornerRadius: 6,
+                displayColors: true,
+                boxPadding: 4,
+            }
+        },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { family: 'Inter', size: 11 } } },
+            x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11, weight: '600' } } }
+        }
+    }
+});
+{% endif %}
+
+// ── Toggle multi-années ──────────────────────────────────────
+const btnAnnees = document.querySelectorAll('.annee-btn');
+let selectedYears = new Set({{ annees_selectionnees|safe }});
+btnAnnees.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const annee = parseInt(btn.dataset.annee);
+        if (selectedYears.has(annee)) {
+            if (selectedYears.size > 1) selectedYears.delete(annee);
+        } else {
+            selectedYears.add(annee);
+        }
+        const params = new URLSearchParams(window.location.search);
+        params.set('annees', [...selectedYears].sort().join(','));
+        if (siteId) params.set('site_graphique', siteId);
+        window.location.search = params.toString();
+    });
+});
+</script>
+{% endblock %}

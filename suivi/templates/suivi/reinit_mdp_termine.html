@@ -1,0 +1,13 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Mot de passe modifié{% endblock %}
+{% block contenu %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card p-4 text-center">
+            <h4 class="mb-3">Mot de passe modifié</h4>
+            <p>Votre mot de passe a bien été modifié. Vous pouvez maintenant vous connecter.</p>
+            <a href="{% url 'connexion' %}" class="btn btn-dark mt-2">Se connecter</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

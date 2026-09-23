@@ -1,0 +1,173 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Aide{% endblock %}
+{% block page_title %}Aide & Lexique{% endblock %}
+
+{% block contenu %}
+
+<div style="max-width:860px;">
+
+{# ── Navigation rapide ── #}
+<div class="app-card" style="padding:16px 20px; margin-bottom:20px;">
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <span style="font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c-gris-moyen);">Aller à :</span>
+        <a href="#saisie" class="btn-select">Saisie des indicateurs</a>
+        <a href="#lexique" class="btn-select">Lexique</a>
+        <a href="#provenance" class="btn-select">Provenances</a>
+        <a href="#tarif" class="btn-select">Tarification</a>
+        <a href="#evenements" class="btn-select">Événements</a>
+        <a href="#api" class="btn-select">API & Export</a>
+        <a href="#faq" class="btn-select">FAQ</a>
+    </div>
+</div>
+
+{# ── Saisie des indicateurs ── #}
+<div class="app-card" id="saisie">
+    <div class="app-card-title"><span>Saisie des indicateurs mensuels</span></div>
+
+    <p style="margin-bottom:16px;">Chaque site touristique doit renseigner ses chiffres de fréquentation <strong>une fois par mois</strong>, au plus tard le 10 du mois suivant. La saisie se fait via le menu <strong>Nouvelle saisie</strong>.</p>
+
+    <div style="background:var(--c-input-bg); border-radius:var(--r-sm); padding:14px 18px; margin-bottom:14px;">
+        <p style="font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--c-gris-moyen); margin-bottom:8px;">Règles de validation</p>
+        <ul style="margin:0; padding-left:18px; font-size:.875rem; line-height:1.8;">
+            <li>La <strong>fréquentation totale</strong> est obligatoire et doit être ≥ 0.</li>
+            <li>La somme <em>locale + France + étranger</em> ne peut pas dépasser le total.</li>
+            <li>La somme <em>gratuit + payant</em> ne peut pas dépasser le total.</li>
+            <li>Une seule saisie est possible par site et par mois — les doublons sont rejetés.</li>
+            <li>Les champs de répartition (provenance, tarif) sont facultatifs mais recommandés.</li>
+        </ul>
+    </div>
+
+    <div style="background:#fffbe6; border-left:3px solid var(--c-accent); border-radius:0 var(--r-sm) var(--r-sm) 0; padding:10px 16px; font-size:.85rem;">
+        <strong>Astuce :</strong> le formulaire valide les chiffres en temps réel. Les jauges colorées vous indiquent si la répartition est cohérente avant d'enregistrer.
+    </div>
+</div>
+
+{# ── Lexique ── #}
+<div class="app-card" id="lexique">
+    <div class="app-card-title"><span>Lexique des indicateurs</span></div>
+
+    {% with termes=termes_lexique %}
+    <div style="display:flex; flex-direction:column; gap:0;">
+        {% for terme in termes %}
+        <div style="padding:14px 0; border-bottom:1px solid var(--c-gris-clair); display:grid; grid-template-columns:220px 1fr; gap:20px; align-items:start;">
+            <div>
+                <span style="font-weight:700; font-size:.9rem; color:var(--c-noir);">{{ terme.nom }}</span>
+                {% if terme.anglais %}<br><span style="font-size:.72rem; color:var(--c-gris-moyen); font-style:italic;">{{ terme.anglais }}</span>{% endif %}
+            </div>
+            <div style="font-size:.875rem; line-height:1.6; color:var(--c-gris-fonce);">
+                {{ terme.definition }}
+                {% if terme.exemple %}
+                <div style="margin-top:6px; padding:6px 10px; background:var(--c-input-bg); border-radius:var(--r-sm); font-size:.8rem; color:var(--c-gris-moyen);">
+                    <strong>Exemple :</strong> {{ terme.exemple }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endwith %}
+</div>
+
+{# ── Provenances ── #}
+<div class="app-card" id="provenance">
+    <div class="app-card-title"><span>Détail des provenances</span></div>
+    <p style="margin-bottom:14px;">La répartition par provenance permet d'analyser le rayonnement géographique du site. Les trois catégories sont <strong>mutuellement exclusives</strong> et leur somme doit être inférieure ou égale à la fréquentation totale.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+        <div style="padding:16px; background:var(--c-input-bg); border-radius:var(--r-sm); border-top:3px solid #03EA68;">
+            <p style="font-weight:700; margin-bottom:6px;">Fréquentation locale</p>
+            <p style="font-size:.82rem; color:var(--c-gris-fonce); line-height:1.6;">Visiteurs résidant dans le bassin de vie immédiat du site, soit le département de la Loire (42) et les communes limitrophes. Correspond aux habitants de proximité qui fréquentent le site régulièrement.</p>
+        </div>
+        <div style="padding:16px; background:var(--c-input-bg); border-radius:var(--r-sm); border-top:3px solid #0084FA;">
+            <p style="font-weight:700; margin-bottom:6px;">Fréquentation France</p>
+            <p style="font-size:.82rem; color:var(--c-gris-fonce); line-height:1.6;">Visiteurs en provenance du reste de la France métropolitaine et des DOM-TOM, à l'exclusion du bassin local. Inclut les touristes, excursionnistes et groupes scolaires hors département.</p>
+        </div>
+        <div style="padding:16px; background:var(--c-input-bg); border-radius:var(--r-sm); border-top:3px solid #DE0068;">
+            <p style="font-weight:700; margin-bottom:6px;">Fréquentation étrangère</p>
+            <p style="font-size:.82rem; color:var(--c-gris-fonce); line-height:1.6;">Visiteurs dont la résidence principale est hors de France. Inclut les touristes internationaux, les expatriés en visite et les groupes organisés étrangers.</p>
+        </div>
+    </div>
+</div>
+
+{# ── Tarification ── #}
+<div class="app-card" id="tarif">
+    <div class="app-card-title"><span>Détail par tarification</span></div>
+    <p style="margin-bottom:14px;">La répartition par tarif mesure la part commerciale de la fréquentation. Elle est indépendante de la répartition par provenance.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div style="padding:16px; background:var(--c-input-bg); border-radius:var(--r-sm); border-top:3px solid #22c55e;">
+            <p style="font-weight:700; margin-bottom:6px;">Fréquentation gratuite</p>
+            <p style="font-size:.82rem; color:var(--c-gris-fonce); line-height:1.6;">Visiteurs n'ayant pas acquitté de droit d'entrée. Comprend les entrées libres, les jours portes ouvertes, les ayants droit (carte musée, adhérents, professionnels du tourisme) et les enfants à tarif nul.</p>
+        </div>
+        <div style="padding:16px; background:var(--c-input-bg); border-radius:var(--r-sm); border-top:3px solid #323C73;">
+            <p style="font-weight:700; margin-bottom:6px;">Fréquentation payante</p>
+            <p style="font-size:.82rem; color:var(--c-gris-fonce); line-height:1.6;">Visiteurs ayant acquitté un droit d'entrée, quel que soit le tarif appliqué (plein tarif, tarif réduit, tarif groupe, billet combiné). Les visites guidées payantes sont incluses.</p>
+        </div>
+    </div>
+
+    <div style="margin-top:14px; padding:10px 16px; background:#fffbe6; border-left:3px solid var(--c-accent); border-radius:0 var(--r-sm) var(--r-sm) 0; font-size:.82rem;">
+        Le taux de gratuité (fréquentation gratuite / total) est un indicateur de la politique d'accessibilité du site.
+    </div>
+</div>
+
+{# ── Événements ── #}
+<div class="app-card" id="evenements">
+    <div class="app-card-title"><span>Saisie des événements</span></div>
+    <p style="margin-bottom:14px;">Les événements permettent de renseigner la fréquentation d'une manifestation ponctuelle (exposition temporaire, festival, journées thématiques...) qui ne correspond pas à une fréquentation mensuelle ordinaire.</p>
+    <ul style="font-size:.875rem; line-height:1.8; padding-left:18px; margin-bottom:14px;">
+        <li>Un événement est <strong>rattaché à un site</strong> et possède une date de début et une date de fin.</li>
+        <li>La fréquentation saisie représente le <strong>total cumulé sur toute la durée</strong> de l'événement.</li>
+        <li>Les événements <strong>ne remplacent pas</strong> la saisie mensuelle — les deux sont complémentaires.</li>
+        <li>Il n'y a pas de contrainte d'unicité sur les événements : plusieurs événements peuvent couvrir la même période.</li>
+    </ul>
+    <div style="background:var(--c-input-bg); border-radius:var(--r-sm); padding:12px 16px; font-size:.82rem; color:var(--c-gris-moyen);">
+        <strong>Bon à savoir :</strong> le formulaire calcule automatiquement la durée et l'estimation journalière (total ÷ nombre de jours) pour vous aider à détecter d'éventuelles erreurs de saisie.
+    </div>
+</div>
+
+{# ── API & Export ── #}
+<div class="app-card" id="api">
+    <div class="app-card-title"><span>API & Exports</span></div>
+
+    <p style="margin-bottom:12px; font-weight:600; font-size:.9rem;">Exports disponibles</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+        <div style="padding:12px 16px; background:var(--c-input-bg); border-radius:var(--r-sm);">
+            <p style="font-weight:700; font-size:.85rem; margin-bottom:4px;">Excel — un onglet par site</p>
+            <p style="font-size:.78rem; color:var(--c-gris-moyen);">Données formatées aux couleurs de la charte, un onglet par site + onglet récapitulatif. Idéal pour une analyse par site.</p>
+        </div>
+        <div style="padding:12px 16px; background:var(--c-input-bg); border-radius:var(--r-sm);">
+            <p style="font-weight:700; font-size:.85rem; margin-bottom:4px;">Excel — onglet unique</p>
+            <p style="font-size:.78rem; color:var(--c-gris-moyen);">Tous les sites sur une seule feuille, avec séparateurs visuels. Pratique pour les traitements croisés.</p>
+        </div>
+        <div style="padding:12px 16px; background:var(--c-input-bg); border-radius:var(--r-sm);">
+            <p style="font-weight:700; font-size:.85rem; margin-bottom:4px;">CSV (délimiteur ;)</p>
+            <p style="font-size:.78rem; color:var(--c-gris-moyen);">Format universel compatible avec tous les tableurs. Encodage UTF-8 avec BOM pour un affichage correct sous Excel.</p>
+        </div>
+        <div style="padding:12px 16px; background:var(--c-input-bg); border-radius:var(--r-sm);">
+            <p style="font-weight:700; font-size:.85rem; margin-bottom:4px;">API JSON (Power BI)</p>
+            <p style="font-size:.78rem; color:var(--c-gris-moyen);">Endpoint REST sécurisé par clé API. Filtres par site, année, mois. Voir la documentation dans <em>À propos</em>.</p>
+        </div>
+    </div>
+</div>
+
+{# ── FAQ ── #}
+<div class="app-card" id="faq">
+    <div class="app-card-title"><span>Questions fréquentes</span></div>
+
+    {% for faq in faqs %}
+    <div x-data="{ open: false }" style="border-bottom:1px solid var(--c-gris-clair);">
+        <button @click="open = !open"
+                style="width:100%; text-align:left; background:none; border:none; padding:14px 0; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-family:inherit;">
+            <span style="font-weight:600; font-size:.875rem; color:var(--c-noir);">{{ faq.question }}</span>
+            <span style="font-size:1rem; color:var(--c-gris-moyen); transition:transform .2s;"
+                  :style="open ? 'transform:rotate(45deg)' : ''">+</span>
+        </button>
+        <div x-show="open" x-collapse style="padding:0 0 14px;">
+            <p style="font-size:.875rem; line-height:1.7; color:var(--c-gris-fonce); margin:0;">{{ faq.reponse }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+</div>
+{% endblock %}

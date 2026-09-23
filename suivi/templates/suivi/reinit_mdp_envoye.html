@@ -1,0 +1,13 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Email envoyé{% endblock %}
+{% block contenu %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card p-4 text-center">
+            <h4 class="mb-3">Email envoyé</h4>
+            <p>Si un compte existe avec cette adresse, un email contenant les instructions de réinitialisation vient de vous être envoyé.</p>
+            <a href="{% url 'connexion' %}" class="btn btn-dark mt-2">Retour à la connexion</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

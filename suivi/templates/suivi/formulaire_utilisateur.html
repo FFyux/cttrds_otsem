@@ -1,0 +1,99 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Nouvel utilisateur{% endblock %}
+{% block page_title %}Nouvel utilisateur{% endblock %}
+
+{% block contenu %}
+<div class="row justify-content-center">
+<div class="col-md-7">
+<div x-data="{
+        prenom: '{{ form.first_name.value|default:''|escapejs }}',
+        nom: '{{ form.last_name.value|default:''|escapejs }}',
+        email: '{{ form.email.value|default:''|escapejs }}',
+        get titre() { return (this.prenom + ' ' + this.nom).trim() || 'Nouvel utilisateur'; },
+        get emailValid() { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email); },
+     }"
+     class="modal-card animate__animated animate__fadeInDown animate__faster"
+     style="position:static; width:100%; max-height:none; box-shadow:0 4px 24px rgba(0,0,0,.12); border:1px solid var(--c-gris-clair);">
+
+    <div class="modal-header">
+        <h4 x-text="titre"></h4>
+    </div>
+
+    <div class="modal-body">
+        {% if form.non_field_errors %}<div class="alert-app danger">{{ form.non_field_errors }}</div>{% endif %}
+
+        <form method="post" id="form-utilisateur">
+            {% csrf_token %}
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="field-group" style="margin:0;" :class="prenom.length > 0 ? 'field-ok' : ''">
+                    <label>Prénom</label>
+                    <input type="text" name="first_name" class="form-control" x-model="prenom" value="{{ form.first_name.value|default:'' }}">
+                </div>
+                <div class="field-group" style="margin:0;" :class="nom.length > 0 ? 'field-ok' : ''">
+                    <label>Nom</label>
+                    <input type="text" name="last_name" class="form-control" x-model="nom" value="{{ form.last_name.value|default:'' }}">
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label>Identifiant de connexion *</label>
+                {{ form.username }}
+                {% if form.username.errors %}<p style="color:#dc2626; font-size:.75rem; margin-top:4px;">{{ form.username.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="field-group" :class="email.length > 0 ? (emailValid ? 'field-ok' : 'field-error') : ''">
+                <label>Email *</label>
+                <input type="email" name="email" class="form-control" x-model="email" value="{{ form.email.value|default:'' }}">
+                <p x-show="email.length > 0 && !emailValid" style="color:#dc2626; font-size:.75rem; margin-top:4px;">
+                    Adresse email invalide.
+                </p>
+            </div>
+
+            <div class="field-group">
+                <label>Téléphone</label>
+                {{ form.telephone }}
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="field-group" style="margin:0;">
+                    <label>Site rattaché</label>
+                    {{ form.site }}
+                </div>
+                <div class="field-group" style="margin:0;">
+                    <label>Rôle</label>
+                    {{ form.role }}
+                </div>
+            </div>
+
+            <div style="background:var(--c-input-bg); border-radius:var(--r-sm); padding:14px 16px; margin-bottom:14px;">
+                <p style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--c-gris-moyen); margin-bottom:10px;">
+                    Mot de passe initial
+                </p>
+                <div class="field-group" style="margin-bottom:10px;">
+                    <label>Mot de passe</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}<p style="color:#dc2626; font-size:.75rem; margin-top:4px;">{{ form.password1.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="field-group" style="margin:0;">
+                    <label>Confirmer</label>
+                    {{ form.password2 }}
+                </div>
+                <p style="font-size:.72rem; color:var(--c-gris-moyen); margin-top:8px;">
+                    L'utilisateur peut réinitialiser son mot de passe via "Mot de passe oublié" s'il a un email valide.
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-actions">
+        <a href="{% url 'liste_utilisateurs' %}" class="btn-cancel">Annuler</a>
+        <button type="submit" form="form-utilisateur" class="btn-app">
+            <span class="spinner"></span>
+            <span class="btn-label">Créer l'utilisateur</span>
+        </button>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

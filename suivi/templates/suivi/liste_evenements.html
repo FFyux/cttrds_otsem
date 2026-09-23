@@ -1,0 +1,38 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Événements{% endblock %}
+{% block contenu %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Événements</h3>
+    <a href="{% url 'saisir_evenement' %}" class="btn btn-dark">+ Nouvel événement</a>
+</div>
+<div class="card">
+    <div class="card-body">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Événement</th>
+                    <th>Site</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                    <th>Fréquentation</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in evenements %}
+                <tr>
+                    <td>{{ ev.nom }}</td>
+                    <td>{{ ev.site.nom }}</td>
+                    <td>{{ ev.date_debut|date:"d/m/Y" }}</td>
+                    <td>{{ ev.date_fin|date:"d/m/Y" }}</td>
+                    <td>{{ ev.frequentation }}</td>
+                    <td><a href="{% url 'modifier_evenement' ev.pk %}" class="btn btn-sm btn-outline-secondary">Modifier</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-muted">Aucun événement enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

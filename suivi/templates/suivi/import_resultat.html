@@ -1,0 +1,129 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Résultat de l'import{% endblock %}
+{% block page_title %}Résultat de l'import{% endblock %}
+
+{% block contenu %}
+<div class="app-card mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <span class="app-card-title">Fichier : {{ fichier_nom }}</span>
+            {% if resultat.dry_run %}
+            <span style="background:#FFED8B; color:#7a6000; border-radius:22px; padding:2px 12px; font-size:.75rem; font-weight:600; margin-left:8px;">
+                SIMULATION — aucune donnée enregistrée
+            </span>
+            {% endif %}
+        </div>
+        <a href="{% url 'portail_import_export' %}" class="btn-cancel" style="padding:7px 16px; border-radius:22px; text-decoration:none; font-size:.875rem;">
+            ← Retour
+        </a>
+    </div>
+
+    {# ── Compteurs ── #}
+    <div class="row g-3 mb-4">
+        <div class="col-auto">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px 22px; text-align:center;">
+                <div style="font-size:1.6rem; font-weight:700; color:#15803d;">{{ resultat.ok|length }}</div>
+                <div style="font-size:.75rem; color:#166534;">{% if resultat.dry_run %}À importer{% else %}Importés{% endif %}</div>
+            </div>
+        </div>
+        <div class="col-auto">
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:14px 22px; text-align:center;">
+                <div style="font-size:1.6rem; font-weight:700; color:#dc2626;">{{ resultat.erreurs|length }}</div>
+                <div style="font-size:.75rem; color:#991b1b;">Erreurs</div>
+            </div>
+        </div>
+        <div class="col-auto">
+            <div style="background:#fffbe6; border:1px solid #F2E7AE; border-radius:10px; padding:14px 22px; text-align:center;">
+                <div style="font-size:1.6rem; font-weight:700; color:#7a6000;">{{ resultat.ignores|length }}</div>
+                <div style="font-size:.75rem; color:#7a6000;">Doublons ignorés</div>
+            </div>
+        </div>
+        <div class="col-auto">
+            <div style="background:#f4f4f8; border:1px solid #ddd; border-radius:10px; padding:14px 22px; text-align:center;">
+                <div style="font-size:1.6rem; font-weight:700; color:#323C73;">{{ resultat.total }}</div>
+                <div style="font-size:.75rem; color:#666;">Total lignes traitées</div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Erreurs ── #}
+    {% if resultat.erreurs %}
+    <div class="mb-4">
+        <p style="font-weight:700; color:#dc2626; font-size:.9rem; margin-bottom:8px;">
+            ⚠ Lignes en erreur (non importées)
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:90px;">Ligne</th>
+                    <th>Erreur(s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for err in resultat.erreurs %}
+                <tr>
+                    <td style="color:#dc2626; font-weight:600;">{{ err.ligne }}</td>
+                    <td>
+                        {% for msg in err.messages %}
+                        <div style="font-size:.82rem;">— {{ msg }}</div>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# ── Ignorés ── #}
+    {% if resultat.ignores %}
+    <div class="mb-4">
+        <p style="font-weight:700; color:#7a6000; font-size:.9rem; margin-bottom:8px;">
+            Doublons ignorés (déjà présents en base)
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:90px;">Ligne</th>
+                    <th>Raison</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ig in resultat.ignores %}
+                <tr>
+                    <td style="color:#7a6000; font-weight:600;">{{ ig.ligne }}</td>
+                    <td style="font-size:.82rem;">{{ ig.message }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# ── OK ── #}
+    {% if resultat.ok %}
+    <div>
+        <p style="font-weight:700; color:#15803d; font-size:.9rem; margin-bottom:8px;">
+            ✓ Lignes {% if resultat.dry_run %}prêtes à être importées{% else %}importées avec succès{% endif %}
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:90px;">Ligne</th>
+                    <th>Enregistrement</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in resultat.ok %}
+                <tr>
+                    <td style="color:#15803d; font-weight:600;">{{ item.ligne }}</td>
+                    <td style="font-size:.82rem;">{{ item.label }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

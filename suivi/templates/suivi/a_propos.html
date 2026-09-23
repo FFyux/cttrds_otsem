@@ -1,0 +1,80 @@
+{% extends "suivi/base.html" %}
+{% block titre %}À propos{% endblock %}
+{% block page_title %}À propos{% endblock %}
+
+{% block contenu %}
+<div style="max-width:760px;">
+
+<div class="app-card">
+    <div class="app-card-title"><span>La plateforme</span></div>
+    <p style="font-size:.9rem; line-height:1.8; margin-bottom:14px;">
+        Cette plateforme a été développée pour <strong>Saint-Étienne Métropole Tourisme &amp; Congrès</strong> afin de centraliser et structurer la collecte des indicateurs de fréquentation des sites touristiques du réseau Loire.
+    </p>
+    <p style="font-size:.875rem; line-height:1.8; color:var(--c-gris-fonce);">
+        Elle remplace les remontées manuelles (emails, fichiers Excel ad-hoc) par un outil unique, sécurisé et directement connecté aux outils de pilotage existants (Power BI, exports Excel).
+    </p>
+</div>
+
+<div class="app-card">
+    <div class="app-card-title"><span>Offices de tourisme partenaires</span></div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        {% for office in offices %}
+        <span style="background:var(--c-input-bg); border:1.5px solid var(--c-gris-clair); border-radius:var(--r-pill); padding:6px 14px; font-size:.85rem; font-weight:500;">{{ office.nom }}</span>
+        {% empty %}
+        <span style="color:var(--c-gris-moyen); font-size:.85rem;">Aucun office enregistré.</span>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="app-card">
+    <div class="app-card-title"><span>Stack technique</span></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        {% for tech in stack %}
+        <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--c-input-bg); border-radius:var(--r-sm);">
+            <span style="font-size:1.4rem;">{{ tech.icone }}</span>
+            <div>
+                <p style="font-weight:700; font-size:.85rem; margin:0;">{{ tech.nom }}</p>
+                <p style="font-size:.75rem; color:var(--c-gris-moyen); margin:0;">{{ tech.detail }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="app-card">
+    <div class="app-card-title"><span>Documentation API</span></div>
+    <p style="font-size:.875rem; margin-bottom:14px; line-height:1.7;">
+        L'API JSON permet à des outils externes (Power BI, scripts, tableurs) de récupérer les données sans passer par l'interface web.
+        Elle est accessible en <strong>lecture seule</strong> via une clé d'authentification.
+    </p>
+
+    <div style="background:var(--c-noir); border-radius:var(--r-sm); padding:16px 20px; font-family:monospace; font-size:.8rem; color:#e0e0e0; margin-bottom:14px; line-height:2;">
+        <span style="color:#03EA68;">GET</span> /api/indicateurs/<br>
+        <span style="color:#D2D2D2;">     → Tous les indicateurs</span><br><br>
+        <span style="color:#03EA68;">GET</span> /api/indicateurs/?annee=2026<br>
+        <span style="color:#D2D2D2;">     → Filtre par année</span><br><br>
+        <span style="color:#03EA68;">GET</span> /api/indicateurs/?mois=6&amp;site=3<br>
+        <span style="color:#D2D2D2;">     → Filtre par mois et par site</span><br><br>
+        <span style="color:#03EA68;">GET</span> /api/sites/<br>
+        <span style="color:#D2D2D2;">     → Liste des sites actifs</span>
+    </div>
+
+    <p style="font-size:.82rem; color:var(--c-gris-moyen);">
+        Authentification : header <code style="background:var(--c-input-bg); padding:1px 5px; border-radius:3px;">X-API-Key: votre_clé</code>
+        ou paramètre URL <code style="background:var(--c-input-bg); padding:1px 5px; border-radius:3px;">?cle=votre_clé</code>.
+        Les clés se génèrent dans <a href="{% url 'liste_utilisateurs' %}">Utilisateurs</a> (administrateur uniquement).
+    </p>
+</div>
+
+<div class="app-card" style="background:var(--c-noir); border-color:var(--c-noir);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+            <p style="color:rgba(255,255,255,.9); font-weight:700; margin-bottom:4px;">Saint-Étienne Métropole Tourisme &amp; Congrès</p>
+            <p style="color:rgba(255,255,255,.5); font-size:.78rem; margin:0;">Plateforme de saisie des indicateurs de fréquentation — v1.0</p>
+        </div>
+        <div style="height:3px; width:60px; background: repeating-linear-gradient(-45deg, transparent, transparent 3px, var(--c-accent) 3px, var(--c-accent) 6px);"></div>
+    </div>
+</div>
+
+</div>
+{% endblock %}

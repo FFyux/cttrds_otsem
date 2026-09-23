@@ -1,0 +1,136 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Import / Export{% endblock %}
+{% block page_title %}Import / Export de données{% endblock %}
+
+{% block contenu %}
+<div class="row g-4">
+
+    {# ── EXPORT ─────────────────────────────────────────────── #}
+    <div class="col-md-6">
+        <div class="app-card h-100">
+            <div class="app-card-title">Exporter les données</div>
+
+            <p class="text-muted small mb-3">
+                Les exports Excel (.xlsx) sont formatés avec la charte graphique de Saint-Étienne Tourisme.
+                Un onglet par site, plus un onglet récapitulatif.
+            </p>
+
+            <p class="mb-1" style="font-weight:600; font-size:.85rem;">Indicateurs mensuels</p>
+            <p class="text-muted small">{{ nb_indicateurs }} enregistrement(s) en base</p>
+
+            <form method="get" action="{% url 'export_excel_indicateurs' %}" class="mb-3">
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    <select name="site" class="form-select form-select-sm" style="width:auto;">
+                        <option value="">Tous les sites</option>
+                        {% for s in sites %}
+                        <option value="{{ s.pk }}">{{ s.nom }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="annee" class="form-select form-select-sm" style="width:auto;">
+                        <option value="">Toutes les années</option>
+                        {% for a, label in annees %}
+                        <option value="{{ a }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary-app">
+                    ↓ Exporter en Excel (.xlsx) — un onglet par site
+                </button>
+                <a href="{% url 'export_excel_indicateurs_unique' %}" class="btn-primary-app ms-2" style="display:inline-block;">
+                    ↓ Exporter en Excel (.xlsx) — onglet unique tous sites
+                </a>
+                <a href="{% url 'export_csv' %}" class="btn-cancel ms-2" style="display:inline-block; padding:7px 16px; border-radius:22px; text-decoration:none; font-size:.875rem;">
+                    ↓ Exporter en CSV
+                </a>
+            </form>
+
+            <hr style="border-color:#eee;">
+
+            <p class="mb-1" style="font-weight:600; font-size:.85rem;">Événements</p>
+            <p class="text-muted small">{{ nb_evenements }} enregistrement(s) en base</p>
+            <a href="{% url 'export_excel_evenements' %}" class="btn-primary-app" style="display:inline-block;">
+                ↓ Exporter les événements (.xlsx)
+            </a>
+        </div>
+    </div>
+
+    {# ── IMPORT ─────────────────────────────────────────────── #}
+    <div class="col-md-6">
+        <div class="app-card h-100">
+            <div class="app-card-title">Importer des indicateurs</div>
+
+            <p class="text-muted small mb-3">
+                Importez des données en masse depuis un fichier Excel (.xlsx) ou CSV (.csv).
+                Les doublons (même site + même mois + même année déjà présents) sont ignorés et signalés.
+            </p>
+
+            <p class="mb-2" style="font-weight:600; font-size:.85rem;">Étape 1 — Téléchargez le modèle</p>
+            <a href="{% url 'telecharger_template_import' %}" class="btn-cancel"
+               style="display:inline-block; padding:7px 16px; border-radius:22px; text-decoration:none; font-size:.875rem; margin-bottom:16px;">
+                ↓ Télécharger le template Excel
+            </a>
+            <p class="text-muted small mb-3">
+                Remplissez le fichier en respectant les colonnes. La colonne <code>nom_site</code>
+                doit correspondre exactement au nom d'un site existant dans la base.
+            </p>
+
+            <p class="mb-2" style="font-weight:600; font-size:.85rem;">Étape 2 — Chargez votre fichier</p>
+            <form method="post" action="{% url 'importer_indicateurs' %}" enctype="multipart/form-data"
+                  x-data="dropZone()" @dragover.prevent="dragover=true" @dragleave.prevent="dragover=false"
+                  @drop.prevent="onDrop($event)" id="form-import">
+                {% csrf_token %}
+                <div class="drop-zone" :class="{ dragover }"
+                     @click="$refs.fileInput.click()"
+                     style="margin-bottom:12px;">
+                    <div class="drop-icon">📂</div>
+                    <p style="font-size:.875rem; font-weight:600; margin:0;" x-text="fileName || 'Glissez votre fichier ici ou cliquez pour parcourir'"></p>
+                    <p style="font-size:.75rem; color:var(--c-gris-moyen); margin:4px 0 0;" x-show="!fileName">.xlsx ou .csv acceptés</p>
+                    <p x-show="fileName" style="font-size:.75rem; color:#15803d; margin-top:4px;">✓ Fichier sélectionné</p>
+                    <input type="file" name="fichier" accept=".xlsx,.csv" x-ref="fileInput" style="display:none;"
+                           @change="onFileChange($event)">
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="submit" name="simulation" form="form-import" class="btn-cancel"
+                            style="padding:7px 16px; border-radius:22px; font-size:.875rem;" :disabled="!fileName">
+                        🔍 Simuler
+                    </button>
+                    <button type="submit" form="form-import" class="btn-primary-app" :disabled="!fileName">
+                        ↑ Importer
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-3 p-3" style="background:#fffbe6; border-left:3px solid #F2E7AE; border-radius:4px; font-size:.8rem; color:#7a6000;">
+                <strong>Conseil :</strong> utilisez le bouton <em>Simuler</em> pour vérifier les erreurs
+                avant d'importer définitivement. Les lignes en erreur sont détaillées dans le rapport.
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function dropZone() {
+    return {
+        dragover: false,
+        fileName: '',
+        onDrop(e) {
+            this.dragover = false;
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                this.fileName = file.name;
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                this.$refs.fileInput.files = dt.files;
+            }
+        },
+        onFileChange(e) {
+            this.fileName = e.target.files[0]?.name || '';
+        },
+    }
+}
+</script>
+{% endblock %}

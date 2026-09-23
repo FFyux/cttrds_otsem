@@ -1,0 +1,35 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Utilisateurs{% endblock %}
+{% block contenu %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Utilisateurs</h3>
+    <a href="{% url 'creer_utilisateur' %}" class="btn btn-dark">+ Nouvel utilisateur</a>
+</div>
+<div class="card">
+    <div class="card-body">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr><th>Nom</th><th>Identifiant</th><th>Email</th><th>Site</th><th>Rôle</th><th>Actif</th><th>Clé API</th></tr>
+            </thead>
+            <tbody>
+                {% for u in utilisateurs %}
+                <tr>
+                    <td>{{ u.get_full_name }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.site|default:"—" }}</td>
+                    <td>{{ u.get_role_display }}</td>
+                    <td>{% if u.is_active %}Oui{% else %}Non{% endif %}</td>
+                    <td>
+                        {% if u.cle_api %}<span class="badge bg-success">Active</span>{% else %}<span class="text-muted">Aucune</span>{% endif %}
+                        <a href="{% url 'generer_cle_api' u.pk %}" class="btn btn-sm btn-outline-secondary ms-1" onclick="return confirm('Générer une nouvelle clé API pour {{ u.username }} ? L\'ancienne sera invalidée.');">{% if u.cle_api %}Régénérer{% else %}Générer{% endif %}</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-muted">Aucun utilisateur.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

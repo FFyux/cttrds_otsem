@@ -1,0 +1,38 @@
+{% extends "suivi/base.html" %}
+{% block titre %}Office de tourisme{% endblock %}
+{% block page_title %}{% if office %}Modifier l'office{% else %}Nouvel office{% endif %}{% endblock %}
+{% block contenu %}
+<div class="row justify-content-center">
+<div class="col-md-5">
+<div x-data="{ nom: '{{ form.nom.value|default:''|escapejs }}' }"
+     class="modal-card animate__animated animate__fadeInDown animate__faster"
+     style="position:static; width:100%; max-height:none; box-shadow:0 4px 24px rgba(0,0,0,.12); border:1px solid var(--c-gris-clair);">
+    <div class="modal-header">
+        <h4 x-text="nom || '{% if office %}{{ office.nom|escapejs }}{% else %}Nouvel office de tourisme{% endif %}'"></h4>
+    </div>
+    <div class="modal-body">
+        <form method="post" id="form-office">
+            {% csrf_token %}
+            <div class="field-group" :class="nom.length > 0 ? 'field-ok' : ''">
+                <label>Nom de l'office *</label>
+                <input type="text" name="nom" class="form-control"
+                       x-model="nom" value="{{ form.nom.value|default:'' }}"
+                       placeholder="Ex : Office de tourisme du Pilat" required>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; padding:10px; background:var(--c-input-bg); border-radius:var(--r-sm);">
+                {{ form.actif }}
+                <label for="{{ form.actif.id_for_label }}" style="font-size:.85rem; margin:0; cursor:pointer;">Actif</label>
+            </div>
+        </form>
+    </div>
+    <div class="modal-actions">
+        <a href="{% url 'liste_offices' %}" class="btn-cancel">Annuler</a>
+        <button type="submit" form="form-office" class="btn-app" :disabled="nom.length === 0">
+            <span class="spinner"></span>
+            <span class="btn-label">Enregistrer</span>
+        </button>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}
